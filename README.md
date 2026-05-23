@@ -36,13 +36,26 @@
    - Crea la base de datos `control_stock` e importa el archivo `.sql` incluido en este repositorio para generar la estructura inicial.
    
 2. **Dependencias:** 
-   - Asegúrate de tener instalado [**Node.js**](https://nodejs.org/es).
-   - Abre una terminal en la carpeta raíz del proyecto y ejecuta:
-```npm install```
+   - Asegúrate de tener instalado **Node.js**.
+   - Abre una terminal en la carpeta raíz del proyecto y ejecuta: npm install
 
 3. **Ejecución:** 
-   - Una vez instaladas las dependencias, inicia la aplicación mediante:
-```npm start```
+   - Una vez instaladas las dependencias, inicia la aplicación mediante: npm start
+</div>
+
+---
+
+## 🔒 Certificados SSL Locales (mkcert)
+
+Si necesitas habilitar el protocolo HTTPS en tu entorno local para pruebas de seguridad, puedes usar **mkcert**:
+
+<div style="background-color: #303030; padding: 15px; border-radius: 8px; color: white;">
+
+1. **Instalación:** Instala mkcert a través de gestores de paquetes como Chocolatey (Windows), Homebrew (macOS) o mediante los binarios oficiales para Linux.
+2. **Configuración:** Ejecuta el comando de instalación de la Autoridad Certificadora local: mkcert -install
+3. **Generación:** Crea los certificados para el dominio local: mkcert localhost
+   - Esto generará los archivos `localhost.pem` y `localhost-key.pem` que deberás implementar en la configuración de tu servidor Node.js.
+
 </div>
 
 ---

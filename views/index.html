@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión Logística</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { 
+                extend: { 
+                    colors: { 
+                        obsidian: { 
+                            DEFAULT: '#070709', 
+                            card: '#111217', 
+                            border: '#1f212a', 
+                            navbar: '#0d0e12',
+                            hover: '#1b1c23'
+                        } 
+                    } 
+                } 
+            }
+        }
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="bg-gray-100 dark:bg-obsidian antialiased transition-colors duration-300">
+
+    <!-- OVERLAY MOBILE -->
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="cerrarSidebar()"></div>
+
+    <!-- NAVBAR -->
+    <nav class="bg-slate-800 dark:bg-obsidian-navbar text-white border-b dark:border-obsidian-border shadow-lg fixed top-0 left-0 right-0 z-50 navbar">
+        <div class="navbar-inner h-full flex justify-between items-center px-4">
+            <div class="flex items-center gap-3">
+                <!-- Botón hamburguesa mobile -->
+                <button onclick="abrirSidebar()" class="md:hidden bg-slate-700 p-2 rounded-lg text-lg"><i class="fas fa-bars"></i></button>
+                <h1 class="text-xl font-bold"><i class="fas fa-building"></i> Sistema de Logística</h1>
+            </div>
+            <button onclick="alternarTema()" id="btn-tema" class="bg-slate-700 hover:bg-slate-600 dark:bg-obsidian-card dark:hover:bg-obsidian-hover p-2 rounded-lg text-lg transition-all active:scale-95"><i class="fas fa-moon"></i></button>
+        </div>
+    </nav>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar">
+
+        <!-- Perfil -->
+        <div class="sidebar-profile">
+            <div class="sidebar-avatar" id="sb-avatar">?</div>
+            <div class="sidebar-user-info">
+                <div class="sidebar-user-name" id="sb-nombre">Cargando...</div>
+                <div class="sidebar-user-role" id="sb-rol">—</div>
+            </div>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- Navegación -->
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-label">NAVEGACIÓN</div>
+
+            <a href="/" class="sidebar-link active" data-page="/"><span class="sidebar-link-icon"><i class="fas fa-chart-bar"></i></span><span>Dashboard</span></a>
+            <a href="/listado" class="sidebar-link" data-page="/listado"><span class="sidebar-link-icon"><i class="fas fa-clipboard-list"></i></span><span>Listado de Stock</span></a>
+            <a href="/registro" class="sidebar-link" data-page="/registro"><span class="sidebar-link-icon"><i class="fas fa-inbox"></i></span><span>Registro de Stock</span></a>
+            <a href="/egreso" class="sidebar-link" data-page="/egreso"><span class="sidebar-link-icon"><i class="fas fa-upload"></i></span><span>Egreso de Stock</span></a>
+            <a href="/pedidos" class="sidebar-link" data-page="/pedidos"><span class="sidebar-link-icon"><i class="fas fa-truck"></i></span><span>Órdenes de Pedido</span></a>
+            <a href="/productos" class="sidebar-link" data-page="/productos"><span class="sidebar-link-icon"><i class="fas fa-tags"></i></span><span>Catálogo de Productos</span></a>
+        </nav>
+
+        <div class="flex-1"></div>
+
+        <!-- Logout -->
+        <div class="sidebar-footer">
+            <div class="sidebar-divider"></div>
+            <button class="sidebar-logout" onclick="cerrarSesion()">
+                <span class="sidebar-link-icon"><i class="fas fa-power-off"></i></span>
+                <span>Cerrar Sesión</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="main-content">
+        <main class="container mx-auto p-8">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">Bienvenido al Panel</h2>
+            <p class="text-gray-500 dark:text-slate-400 text-sm mb-8" id="saludo-usuario">Cargando...</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white dark:bg-obsidian-card p-6 rounded-xl border dark:border-obsidian-border shadow-md">
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-slate-100 mb-2">Catálogo</h3>
+                    <p class="text-gray-600 dark:text-slate-400 mb-4">Gestiona, añade o elimina productos de tu inventario.</p>
+                    <a href="/productos" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-bold transition-colors">Ir a Productos</a>
+                </div>
+
+                <div class="bg-white dark:bg-obsidian-card p-6 rounded-xl border dark:border-obsidian-border shadow-md">
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-slate-100 mb-2">Listado</h3>
+                    <p class="text-gray-600 dark:text-slate-400 mb-4">Consulta el inventario completo y estados de stock.</p>
+                    <a href="/listado" class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded font-bold transition-colors">Ver Listado</a>
+                </div>
+
+                <div class="bg-white dark:bg-obsidian-card p-6 rounded-xl border dark:border-obsidian-border shadow-md">
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-slate-100 mb-2">Movimientos</h3>
+                    <p class="text-gray-600 dark:text-slate-400 mb-4">Registro de entradas y salidas de almacén.</p>
+                    <button class="w-full bg-slate-600 text-white py-2 rounded font-bold cursor-not-allowed opacity-50">Próximamente</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ---- TEMA ----
+        function alternarTema() {
+            const html = document.documentElement;
+            const btn = document.getElementById('btn-tema');
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        }
+
+        // ---- SIDEBAR MOBILE ----
+        function abrirSidebar() {
+            document.getElementById('sidebar').classList.add('open');
+            document.getElementById('sidebar-overlay').classList.add('active');
+        }
+        function cerrarSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebar-overlay').classList.remove('active');
+        }
+
+        // ---- USUARIO ----
+        function cargarUsuario() {
+            const raw = sessionStorage.getItem('usuario');
+            if (!raw) {
+                window.location.href = '/login';
+                return;
+            }
+            const usuario = JSON.parse(raw);
+
+            const iniciales = usuario.nombre
+                .split(' ')
+                .slice(0, 2)
+                .map(n => n[0])
+                .join('')
+                .toUpperCase();
+
+            document.getElementById('sb-avatar').textContent = iniciales;
+            document.getElementById('sb-nombre').textContent = usuario.nombre;
+            document.getElementById('sb-rol').textContent = usuario.rol || 'Operador';
+            document.getElementById('saludo-usuario').textContent = `Hola, ${usuario.nombre} — ${new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+        }
+
+        function cerrarSesion() {
+            if (!confirm('¿Cerrar sesión?')) return;
+            sessionStorage.removeItem('usuario');
+            fetch('/api/auth/logout', { method: 'POST' })
+                .finally(() => window.location.href = '/login');
+        }
+
+        // ---- INIT ----
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('btn-tema').innerHTML = document.documentElement.classList.contains('dark') ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+            cargarUsuario();
+        });
+    </script>
+</body>
+</html>

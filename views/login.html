@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso al Sistema - Logística</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/styles.css?v=2">
+</head>
+<body class="login-page">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="login-wrapper">
+        <div class="brand">
+            <div class="brand-title">Centro de Distribución</div>
+            <div class="brand-sub">Sistema de Logística</div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Iniciar sesión</div>
+                <div class="card-subtitle">// ACCESO RESTRINGIDO AL PERSONAL AUTORIZADO</div>
+            </div>
+            <div class="divider"></div>
+
+            <div class="field">
+                <label>Correo electrónico</label>
+                <div class="input-wrap">
+                    <span class="icon"><i class="fas fa-envelope"></i></span>
+                    <input type="email" id="input-correo" placeholder="usuario@empresa.com" autocomplete="email">
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Contraseña</label>
+                <div class="input-wrap">
+                    <span class="icon"><i class="fas fa-lock"></i></span>
+                    <input type="password" id="input-password" placeholder="••••••••" autocomplete="current-password">
+                </div>
+            </div>
+
+            <button class="btn-login" id="btn-login" onclick="iniciarSesion()">
+                <span class="btn-text">Ingresar al Sistema</span>
+                <div class="spinner"></div>
+            </button>
+
+            <div class="error-msg" id="error-msg">
+                <span>⚠</span>
+                <span id="error-texto">Credenciales incorrectas.</span>
+            </div>
+        </div>
+
+        <div class="footer-note">v1.0 · ACCESO SEGURO · SESIÓN ENCRIPTADA</div>
+    </div>
+
+    <script>
+        // Enter para enviar
+        document.addEventListener('keydown', e => { if (e.key === 'Enter') iniciarSesion(); });
+
+        async function iniciarSesion() {
+            const correo = document.getElementById('input-correo').value.trim();
+            const password = document.getElementById('input-password').value;
+            const btn = document.getElementById('btn-login');
+            const errorMsg = document.getElementById('error-msg');
+
+            errorMsg.classList.remove('visible');
+
+            if (!correo || !password) {
+                mostrarError('Completá todos los campos.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.classList.add('loading');
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ correo, password })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    sessionStorage.setItem('usuario', JSON.stringify(data.usuario));
+                    window.location.href = '/';
+                } else {
+                    mostrarError(data.message || 'Credenciales incorrectas.');
+                }
+            } catch (err) {
+                mostrarError('Error de conexión con el servidor.');
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+            }
+        }
+
+        function mostrarError(msg) {
+            document.getElementById('error-texto').textContent = msg;
+            document.getElementById('error-msg').classList.add('visible');
+        }
+    </script>
+</body>
+</html>

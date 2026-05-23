@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Egreso de Stock - Logística</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { obsidian: { DEFAULT: '#070709', card: '#111217', border: '#1f212a', navbar: '#0d0e12', hover: '#1b1c23' } } } }
+        }
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/styles.css">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+
+<body class="bg-gray-100 dark:bg-obsidian antialiased transition-colors duration-300">
+
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="cerrarSidebar()"></div>
+
+    <!-- NAVBAR -->
+    <nav class="bg-slate-800 dark:bg-obsidian-navbar text-white border-b dark:border-obsidian-border shadow-lg fixed top-0 left-0 right-0 z-50 navbar">
+        <div class="navbar-inner h-full flex justify-between items-center px-4">
+            <div class="flex items-center gap-3">
+                <button onclick="abrirSidebar()" class="md:hidden bg-slate-700 p-2 rounded-lg text-lg"><i class="fas fa-bars"></i></button>
+                <h1 class="text-base sm:text-xl font-bold"><i class="fas fa-upload"></i> <span class="hidden sm:inline">EGRESO |</span> Salida de Stock</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="badge-sesion" class="hidden sm:inline bg-rose-900 text-rose-300 border border-rose-700 px-3 py-1 rounded-full text-xs font-mono font-bold">0 egresos</span>
+                <button onclick="alternarTema()" id="btn-tema" class="bg-slate-700 p-2 rounded-lg transition-all active:scale-95"><i class="fas fa-moon"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-profile">
+            <div class="sidebar-avatar" id="sb-avatar">?</div>
+            <div class="sidebar-user-info">
+                <div class="sidebar-user-name" id="sb-nombre">Cargando...</div>
+                <div class="sidebar-user-role" id="sb-rol">—</div>
+            </div>
+        </div>
+        <div class="sidebar-divider"></div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-label">NAVEGACIÓN</div>
+            <a href="/" class="sidebar-link" data-page="/"><span class="sidebar-link-icon">📊</span><span>Dashboard</span></a>
+            <a href="/listado" class="sidebar-link" data-page="/listado"><span class="sidebar-link-icon">📋</span><span>Listado de Stock</span></a>
+            <a href="/registro" class="sidebar-link" data-page="/registro"><span class="sidebar-link-icon">📥</span><span>Registro de Stock</span></a>
+            <a href="/egreso" class="sidebar-link active" data-page="/egreso"><span class="sidebar-link-icon">📤</span><span>Egreso de Stock</span></a>
+            <a href="/movimientos" class="sidebar-link" data-page="/movimientos"><span class="sidebar-link-icon">📋</span><span>Movimientos</span></a>
+            <a href="/pedidos" class="sidebar-link" data-page="/pedidos"><span class="sidebar-link-icon">🚚</span><span>Órdenes de Pedido</span></a>
+            <a href="/productos" class="sidebar-link" data-page="/productos"><span class="sidebar-link-icon">🏷️</span><span>Catálogo de Productos</span></a>
+        </nav>
+        <div class="flex-1"></div>
+        <div class="sidebar-footer">
+            <div class="sidebar-divider"></div>
+            <button class="sidebar-logout" onclick="cerrarSesion()">
+                <span class="sidebar-link-icon">⏻</span><span>Cerrar Sesión</span>
+            </button>
+        </div>
+    </aside>
+
+
+    <!-- MODAL CÁMARA -->
+    <div id="modal-camara">
+        <div class="camara-contenedor">
+            <div class="camara-header">
+                <div class="camera-heading">
+                    <span class="camera-heading-icon"><i class="fas fa-camera"></i></span>
+                    <span class="camera-heading-text">Escáner por cámara</span>
+                </div>
+                <button onclick="cerrarCamara()" class="button-clear">✕</button>
+            </div>
+            <div id="select-camara-wrap" class="camera-select-wrap">
+                <label class="camera-select-label">Cámara activa</label>
+                <select id="select-camara" onchange="cambiarCamara()" class="camera-select">
+                    <option value="">Seleccioná una cámara...</option>
+                </select>
+            </div>
+            <div id="visor-camara">
+                <div class="scan-line"></div>
+            </div>
+            <div class="camara-footer">
+                <p id="camara-estado" class="camara-estado">Iniciando cámara...</p>
+            </div>
+        </div>
+    </div>
+
+    <input id="input-scanner" type="text" autocomplete="off" autocorrect="off" spellcheck="false">
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="main-content">
+        <main class="container mx-auto p-3 sm:p-6 max-w-5xl">
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+
+                <!-- ===== PANEL IZQUIERDO ===== -->
+                <div class="space-y-4">
+
+                    <!-- Zona de escaneo -->
+                    <div id="scan-zone" class="scan-zone bg-white dark:bg-obsidian-card p-6 sm:p-8 rounded-2xl cursor-pointer select-none"
+                         onclick="enfocarScanner()" tabindex="0">
+
+                        <div class="text-center mb-5">
+                            <div id="scan-icon" class="text-5xl sm:text-6xl mb-3 transition-all duration-200"><i class="fas fa-upload"></i></div>
+                            <p id="scan-estado" class="font-mono text-xs font-bold uppercase tracking-widest text-rose-500 dark:text-rose-400">
+                                Listo para registrar salida
+                            </p>
+                        </div>
+
+                        <!-- Resultado del último egreso -->
+                        <div id="resultado-scan" class="hidden rounded-xl p-4 mb-5">
+
+                            <!-- Info del producto -->
+                            <div class="flex justify-between items-start gap-3 mb-3">
+                                <div class="min-w-0">
+                                    <p id="res-nombre" class="font-bold text-gray-900 dark:text-slate-100 text-sm sm:text-base leading-tight"></p>
+                                    <p id="res-sku" class="font-mono text-xs text-blue-500 mt-1 font-bold"></p>
+                                    <p id="res-cat" class="text-xs text-gray-500 dark:text-slate-400 mt-0.5"></p>
+                                </div>
+                                <div class="text-right flex-shrink-0">
+                                    <div id="res-stock" class="text-3xl font-bold"></div>
+                                    <div class="text-xs text-gray-400 font-mono">en stock</div>
+                                </div>
+                            </div>
+
+                            <!-- Barra de stock -->
+                            <div class="stock-bar-track mt-2">
+                                <div id="res-barra" class="stock-bar-fill bg-rose-500" style="width:0%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-400 font-mono mt-1">
+                                <span>0</span>
+                                <span id="res-minimo"></span>
+                            </div>
+
+                            <!-- Alerta crítico -->
+                            <div id="alerta-critico" class="hidden mt-3 flex items-center gap-2 bg-orange-50 dark:bg-orange-950/20 border border-orange-300 dark:border-orange-700 rounded-lg px-3 py-2">
+                                <span class="text-base"><i class="fas fa-exclamation-triangle"></i></span>
+                                <span class="text-xs font-semibold text-orange-700 dark:text-orange-400">Stock por debajo del mínimo requerido</span>
+                            </div>
+                        </div>
+
+                        <div class="text-center">
+                            <p class="text-xs text-gray-400 dark:text-slate-500">Apuntá el escáner aquí · Toca para activar</p>
+                        </div>
+                    </div>
+
+                    <!-- Input manual -->
+                    <div class="bg-white dark:bg-obsidian-card rounded-2xl border dark:border-obsidian-border p-4">
+                        <label class="block font-mono text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-2">
+                            Ingreso manual de código
+                        </label>
+                        <div class="flex gap-2">
+                            <input type="text" id="input-manual"
+                                placeholder="SKU o código de barras..."
+                                autocomplete="off"
+                                class="flex-1 px-3 py-2.5 border dark:border-obsidian-border rounded-xl bg-gray-50 dark:bg-obsidian-navbar text-gray-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-rose-500 text-sm">
+                            <button onclick="procesarManual()"
+                                class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition-all active:scale-95">
+                                −
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Cantidad por escaneo -->
+                    <div class="bg-white dark:bg-obsidian-card rounded-2xl border dark:border-obsidian-border p-4">
+                        <label class="block font-mono text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-3">
+                            Cantidad a retirar por escaneo
+                        </label>
+                        <div class="flex items-center gap-3">
+                            <button onclick="cambiarCantidad(-1)"
+                                class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-obsidian-hover hover:bg-gray-200 dark:hover:bg-obsidian-border text-gray-700 dark:text-slate-200 font-bold text-lg transition-all active:scale-95 flex items-center justify-center">
+                                −
+                            </button>
+                            <span id="cantidad-display" class="text-2xl font-bold text-gray-900 dark:text-slate-100 w-10 text-center">1</span>
+                            <button onclick="cambiarCantidad(+1)"
+                                class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-obsidian-hover hover:bg-gray-200 dark:hover:bg-obsidian-border text-gray-700 dark:text-slate-200 font-bold text-lg transition-all active:scale-95 flex items-center justify-center">
+                                +
+                            </button>
+                            <span class="text-xs text-gray-400 dark:text-slate-500 ml-1">unidades por scan</span>
+                        </div>
+                    </div>
+                    <!-- Botón cámara -->
+                    <button onclick="abrirCamara()"
+                        class="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-2xl text-sm transition-all active:scale-95 shadow-md">
+                        <i class="fas fa-camera"></i> Usar cámara del dispositivo
+                    </button>
+                </div>
+
+                <!-- ===== PANEL DERECHO: LOG ===== -->
+                <div class="bg-white dark:bg-obsidian-card rounded-2xl border dark:border-obsidian-border overflow-hidden flex flex-col card-max-height-600">
+
+                    <div class="px-4 py-3 border-b dark:border-obsidian-border bg-gray-50 dark:bg-obsidian-navbar flex justify-between items-center flex-shrink-0">
+                        <div>
+                            <h3 class="font-bold text-gray-800 dark:text-slate-100 text-sm">Registro de sesión</h3>
+                            <p class="text-xs text-gray-400 dark:text-slate-500 font-mono mt-0.5">
+                                <span id="log-total">0</span> egresos · <span id="log-unidades">0</span> unidades retiradas
+                            </p>
+                        </div>
+                        <button onclick="limpiarLog()"
+                            class="text-xs text-gray-400 hover:text-red-500 dark:hover:text-red-400 font-medium transition-colors px-2 py-1 rounded">
+                            Limpiar
+                        </button>
+                    </div>
+
+                    <div id="log-lista" class="flex-1 overflow-y-auto divide-y dark:divide-obsidian-border">
+                        <div id="log-vacio" class="p-8 text-center text-gray-400 dark:text-slate-500">
+                            <div class="text-3xl mb-2"><i class="fas fa-clipboard-list"></i></div>
+                            <p class="text-sm">Los egresos aparecerán aquí</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let cantidad = 1;
+        let totalEgresos = 0;
+        let totalUnidades = 0;
+        let bufferScanner = '';
+
+        // ---- TEMA ----
+        function alternarTema() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            document.getElementById('btn-tema').innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        }
+
+        // ---- SIDEBAR ----
+        function abrirSidebar()  { document.getElementById('sidebar').classList.add('open');    document.getElementById('sidebar-overlay').classList.add('active'); }
+        function cerrarSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); }
+
+        // ---- USUARIO ----
+        function cargarUsuario() {
+            const raw = sessionStorage.getItem('usuario');
+            if (!raw) { window.location.href = '/login'; return; }
+            const u = JSON.parse(raw);
+            const iniciales = u.nombre.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+            document.getElementById('sb-avatar').textContent = iniciales;
+            document.getElementById('sb-nombre').textContent = u.nombre;
+            document.getElementById('sb-rol').textContent = u.rol || 'Operador';
+        }
+
+        function cerrarSesion() {
+            if (!confirm('¿Cerrar sesión?')) return;
+            sessionStorage.removeItem('usuario');
+            fetch('/api/auth/logout', { method: 'POST' }).finally(() => window.location.href = '/login');
+        }
+
+        // ---- CANTIDAD ----
+        function cambiarCantidad(delta) {
+            cantidad = Math.max(1, cantidad + delta);
+            document.getElementById('cantidad-display').textContent = cantidad;
+        }
+
+        // ---- SCANNER ----
+        function enfocarScanner() { document.getElementById('input-scanner').focus(); }
+
+        let ultimoCodigoFisico = '';
+        let timerReinicioFisico = null;
+
+        document.getElementById('input-scanner').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const codigo = bufferScanner.trim();
+                bufferScanner = '';
+                if (!codigo) return;
+
+                // Permitir si es un código distinto al anterior
+                // o si pasaron más de 2 segundos desde el último escaneo del mismo
+                if (codigo !== ultimoCodigoFisico) {
+                    ultimoCodigoFisico = codigo;
+                    procesarCodigo(codigo);
+                }
+                // Si es el mismo, ignorar — el operador tiene que soltar y volver a escanear
+
+                // Resetear el "último código" después de 2s de inactividad
+                clearTimeout(timerReinicioFisico);
+                timerReinicioFisico = setTimeout(() => { ultimoCodigoFisico = ''; }, 2000);
+
+            } else if (e.key.length === 1) {
+                bufferScanner += e.key;
+            }
+            e.preventDefault();
+        });
+
+        // ---- MANUAL ----
+        document.getElementById('input-manual').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') procesarManual();
+        });
+
+        function procesarManual() {
+            const val = document.getElementById('input-manual').value.trim();
+            if (!val) return;
+            document.getElementById('input-manual').value = '';
+            procesarCodigo(val);
+        }
+
+        // ---- PROCESAR ----
+        async function procesarCodigo(codigo) {
+            setEstado('leyendo', '⏳', 'Verificando stock...');
+
+            try {
+                const res = await fetch('/api/stock/egreso', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo, cantidad })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    const p = data.producto;
+                    const esCritico = data.alerta_critico;
+
+                    if (esCritico) {
+                        setEstado('warn', '⚠️', `−${p.cantidad_retirada} retirado · Stock crítico`);
+                        flashZona('warn');
+                    } else {
+                        setEstado('ok', '✅', `−${p.cantidad_retirada} retirado correctamente`);
+                        flashZona('ok');
+                    }
+
+                    mostrarResultado(p, esCritico);
+                    agregarLog(p, esCritico);
+                } else {
+                    setEstado('err', '🚫', data.message || 'No se pudo procesar');
+                    ocultarResultado();
+                    flashZona('err');
+                }
+
+            } catch (e) {
+                setEstado('err', '⚠️', 'Error de conexión');
+                flashZona('err');
+            }
+
+            setTimeout(() => setEstado('ready', '📤', 'Listo para registrar salida'), 3000);
+            enfocarScanner();
+        }
+
+        // ---- UI HELPERS ----
+        function mapIcon(sym) {
+            const m = {
+                '⏳': '<i class="fas fa-hourglass-half"></i>',
+                '✅': '<i class="fas fa-check-circle"></i>',
+                '❌': '<i class="fas fa-times-circle"></i>',
+                '⚠️': '<i class="fas fa-exclamation-triangle"></i>',
+                '⚠': '<i class="fas fa-exclamation-triangle"></i>',
+                '🚫': '<i class="fas fa-ban"></i>',
+                '📤': '<i class="fas fa-upload"></i>'
+            };
+            return m[sym] || sym;
+        }
+
+        function setEstado(tipo, icono, texto) {
+            document.getElementById('scan-icon').innerHTML = mapIcon(icono);
+            document.getElementById('scan-estado').textContent = texto;
+            const zona = document.getElementById('scan-zone');
+            zona.classList.remove('ok', 'warn', 'err');
+            if (tipo !== 'ready' && tipo !== 'leyendo') zona.classList.add(tipo);
+        }
+
+        function flashZona(tipo) {
+            const zona = document.getElementById('scan-zone');
+            zona.classList.remove('flash-ok', 'flash-warn', 'flash-err');
+            void zona.offsetWidth;
+            zona.classList.add(`flash-${tipo}`);
+        }
+
+        function mostrarResultado(p, esCritico) {
+            document.getElementById('res-nombre').textContent = p.nombre;
+            document.getElementById('res-sku').textContent = `SKU: ${p.sku}`;
+            document.getElementById('res-cat').textContent = p.categoria || '';
+
+            // Número de stock con color según nivel
+            const resStock = document.getElementById('res-stock');
+            resStock.textContent = p.stock_actual;
+            resStock.className = `text-3xl font-bold ${
+                p.stock_actual === 0        ? 'text-gray-400' :
+                esCritico                   ? 'text-orange-500' :
+                                              'text-rose-500'
+            }`;
+
+            // Barra de stock
+            const maximo = Math.max(p.stock_anterior, p.stock_minimo * 3, 10);
+            const porcentaje = Math.min(100, (p.stock_actual / maximo) * 100);
+            const barra = document.getElementById('res-barra');
+            barra.style.width = porcentaje + '%';
+            barra.className = `stock-bar-fill ${
+                p.stock_actual === 0 ? 'bg-gray-300 dark:bg-gray-600' :
+                esCritico            ? 'bg-orange-400' :
+                                       'bg-rose-500'
+            }`;
+
+            document.getElementById('res-minimo').textContent = `mín: ${p.stock_minimo ?? 0}`;
+
+            // Alerta crítico
+            const alerta = document.getElementById('alerta-critico');
+            esCritico ? alerta.classList.remove('hidden') : alerta.classList.add('hidden');
+
+            const el = document.getElementById('resultado-scan');
+            el.className = `rounded-xl p-4 mb-5 border ${
+                esCritico
+                    ? 'bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800'
+                    : 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800'
+            }`;
+            el.classList.remove('hidden');
+        }
+
+        function ocultarResultado() {
+            document.getElementById('resultado-scan').classList.add('hidden');
+        }
+
+        function agregarLog(p, esCritico) {
+            totalEgresos++;
+            totalUnidades += p.cantidad_retirada;
+
+            document.getElementById('log-vacio')?.remove();
+            document.getElementById('log-total').textContent = totalEgresos;
+            document.getElementById('log-unidades').textContent = totalUnidades;
+            document.getElementById('badge-sesion').textContent = `${totalEgresos} egresos`;
+            document.getElementById('badge-sesion').classList.remove('hidden');
+
+            const hora = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            const item = document.createElement('div');
+            item.className = 'log-item flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-obsidian-hover transition-colors';
+            item.innerHTML = `
+                <div class="min-w-0 flex-1 mr-3">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">${p.nombre}</p>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <span class="font-mono text-xs text-blue-500">${p.sku}</span>
+                        ${esCritico ? '<span class="text-xs font-bold text-orange-500">⚠ crítico</span>' : ''}
+                    </div>
+                </div>
+                <div class="flex-shrink-0 text-right">
+                    <div class="font-bold text-rose-500 text-sm">−${p.cantidad_retirada}</div>
+                    <div class="text-xs text-gray-400 font-mono">${hora}</div>
+                </div>`;
+
+            const lista = document.getElementById('log-lista');
+            lista.insertBefore(item, lista.firstChild);
+        }
+
+        function limpiarLog() {
+            if (totalEgresos > 0 && !confirm('¿Limpiar el registro de esta sesión?')) return;
+            totalEgresos = 0; totalUnidades = 0;
+            document.getElementById('log-total').textContent = '0';
+            document.getElementById('log-unidades').textContent = '0';
+            document.getElementById('badge-sesion').textContent = '0 egresos';
+            document.getElementById('log-lista').innerHTML = `
+                <div id="log-vacio" class="p-8 text-center text-gray-400 dark:text-slate-500">
+                    <div class="text-3xl mb-2">📋</div>
+                    <p class="text-sm">Los egresos aparecerán aquí</p>
+                </div>`;
+            ocultarResultado();
+            setEstado('ready', '📤', 'Listo para registrar salida');
+        }
+
+
+
+        // ---- CÁMARA ----
+        let html5QrCode = null;
+        let camaras = [];
+        let camaraActualId = null;
+        let cooldownCamara = false;
+
+        async function abrirCamara() {
+            const modal = document.getElementById('modal-camara');
+            const estado = document.getElementById('camara-estado');
+            const selectWrap = document.getElementById('select-camara-wrap');
+            modal.classList.add('activo');
+
+            // Modo foto para HTTP (sin contexto seguro)
+            if (!window.isSecureContext) {
+                selectWrap.style.display = 'none';
+                estado.textContent = 'Modo foto (HTTP). Tomá una foto del código.';
+                document.getElementById('visor-camara').innerHTML = `
+                    <div class="preview-note">
+                        <p class="preview-note-text">
+                            La cámara en vivo requiere HTTPS.<br>Usá el botón para fotografiar el código.
+                        </p>
+                        <label class="preview-upload-label">
+                            📸 Abrir cámara
+                            <input type="file" accept="image/*" capture="environment"
+                                class="hidden" onchange="escanearDesdeImagen(this)">
+                        </label>
+                        <p class="preview-help">
+                            En celular abre la cámara trasera directamente
+                        </p>
+                    </div>`;
+                return;
+            }
+
+            // Modo en vivo (HTTPS) — pedir permiso primero con getUserMedia
+            // así el navegador muestra el popup de permiso ANTES de listar cámaras
+            estado.textContent = 'Solicitando permiso de cámara...';
+            selectWrap.style.display = 'none';
+
+            try {
+                // Paso 1: forzar cámara trasera con exact (no ideal)
+                // exact falla si no hay trasera, lo que nos da un error claro
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: { exact: 'environment' } }
+                    });
+                } catch {
+                    // Fallback: dispositivo sin trasera (tablet solo frontal, PC con webcam)
+                    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                }
+                stream.getTracks().forEach(t => t.stop());
+
+                // Paso 2: listar cámaras (ya tenemos permiso)
+                camaras = await Html5Qrcode.getCameras();
+
+                if (!camaras || camaras.length === 0) {
+                    estado.textContent = 'No se encontraron cámaras.';
+                    return;
+                }
+
+                // Poblar el selector
+                const select = document.getElementById('select-camara');
+                select.innerHTML = camaras.map((c, i) => {
+                    let label = c.label || ('Cámara ' + (i + 1));
+                    if (/front|frontal|user/i.test(label))         label = '📸 Frontal — ' + label;
+                    else if (/back|rear|environment/i.test(label)) label = '📷 Trasera — ' + label;
+                    return `<option value="${c.id}">${label}</option>`;
+                }).join('');
+
+                selectWrap.style.display = 'block';
+
+                // Elegir trasera: por label → por índice (Android: última = trasera principal)
+                const porLabel  = camaras.find(c => /back|rear|environment/i.test(c.label));
+                const porIndice = camaras.length > 1 ? camaras[camaras.length - 1] : camaras[0];
+                const elegida   = porLabel || porIndice;
+                camaraActualId  = elegida.id;
+                select.value    = camaraActualId;
+
+                await iniciarCamara(camaraActualId);
+
+            } catch (e) {
+                console.error('Error cámara:', e);
+                if (e.name === 'NotAllowedError') {
+                    estado.textContent = 'Permiso denegado. Habilitá la cámara en el navegador.';
+                } else if (e.name === 'NotFoundError') {
+                    estado.textContent = 'No se encontró ninguna cámara en este dispositivo.';
+                } else {
+                    estado.textContent = 'Error: ' + (e.message || e);
+                }
+            }
+        }
+
+        async function escanearDesdeImagen(input) {
+            const archivo = input.files[0];
+            if (!archivo) return;
+
+            const estado = document.getElementById('camara-estado');
+            estado.textContent = 'Analizando imagen...';
+
+            const url = URL.createObjectURL(archivo);
+            document.getElementById('visor-camara').innerHTML =
+                `<img src="${url}" class="preview-img">`;
+
+            // Html5Qrcode.scanFile necesita un elemento en el DOM
+            const tempDiv = document.createElement('div');
+            tempDiv.id = '__temp_scan__';
+            tempDiv.style.display = 'none';
+            document.body.appendChild(tempDiv);
+
+            try {
+                const scanner = new Html5Qrcode('__temp_scan__');
+                const resultado = await scanner.scanFile(archivo, false);
+                estado.innerHTML = `<i class="fas fa-check"></i> Leído: ${resultado}`;
+                await procesarCodigo(resultado);
+                setTimeout(() => cerrarCamara(), 1500);
+            } catch (e) {
+                estado.textContent = 'No se detectó código. Intentá de nuevo con mejor iluminación.';
+                document.getElementById('visor-camara').innerHTML += `
+                    <div class="preview-note">
+                        <label class="preview-upload-label">
+                            📸 Intentar de nuevo
+                            <input type="file" accept="image/*" capture="environment"
+                                class="hidden" onchange="escanearDesdeImagen(this)">
+                        </label>
+                    </div>`;
+            } finally {
+                document.body.removeChild(tempDiv);
+            }
+        }
+
+        // ---- MOTOR DE ESCANEO ----
+        // Usa BarcodeDetector nativo (Chrome Android, excelente con EAN-13)
+        // Fallback a html5-qrcode para dispositivos sin BarcodeDetector
+        let videoStream = null;
+        let scanLoop = null;
+        const FORMATOS_BARCODE = ['ean_13','ean_8','code_128','code_39','code_93',
+                                   'upc_a','upc_e','itf','qr_code','data_matrix','aztec','pdf417'];
+
+        async function iniciarCamara(deviceId) {
+            await detenerCamara();
+
+            document.getElementById('visor-camara').innerHTML = '<div class="scan-line"></div>';
+            document.getElementById('camara-estado').textContent = 'Iniciando cámara...';
+
+            try {
+                // Abrir stream de video con trasera + autofoco
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        deviceId:   { exact: deviceId },
+                        facingMode: { exact: 'environment' },
+                        focusMode:  'continuous',
+                        width:      { ideal: 1920 },
+                        height:     { ideal: 1080 },
+                        advanced:   [{ focusMode: 'continuous' }]
+                    }
+                });
+
+                // Crear y montar el elemento video
+                const video = document.createElement('video');
+                video.srcObject = videoStream;
+                video.setAttribute('playsinline', '');
+                video.setAttribute('autoplay', '');
+                video.style.cssText = 'width:100%;display:block;';
+
+                const visor = document.getElementById('visor-camara');
+                visor.innerHTML = '';
+                visor.appendChild(video);
+
+                // Línea de escaneo animada encima del video
+                const linea = document.createElement('div');
+                linea.className = 'scan-line';
+                visor.appendChild(linea);
+
+                await video.play();
+                await aplicarAutofoco(videoStream);
+
+                // Decidir motor: BarcodeDetector (nativo) o html5-qrcode (fallback)
+                if ('BarcodeDetector' in window) {
+                    const soportados = await BarcodeDetector.getSupportedFormats();
+                    const formatos   = FORMATOS_BARCODE.filter(f => soportados.includes(f));
+                    const detector   = new BarcodeDetector({ formats: formatos.length ? formatos : ['ean_13','qr_code'] });
+                    document.getElementById('camara-estado').textContent = 'Apuntá al código de barras...';
+                    iniciarLoopNativo(video, detector);
+                } else {
+                    // Fallback: html5-qrcode sobre el stream ya abierto
+                    document.getElementById('camara-estado').textContent = 'Apuntá al código de barras...';
+                    iniciarFallbackQrcode(deviceId);
+                }
+
+            } catch (e) {
+                console.error('Error al iniciar cámara:', e);
+                document.getElementById('camara-estado').textContent = 'Error al iniciar: ' + (e.message || e);
+            }
+        }
+
+        function iniciarLoopNativo(video, detector) {
+            // Código procesado → solo se puede re-escanear cuando desaparece del frame
+            const codigosProcesados  = new Set(); // ya registrados, esperando que salgan del frame
+            const codigosAusentes    = new Map();  // código → timestamp de cuando dejó de verse
+            const MS_AUSENTE         = 800;        // ms sin verse para considerarlo "retirado"
+
+            const loop = async () => {
+                if (!document.getElementById('modal-camara').classList.contains('activo')) return;
+                try {
+                    if (video.readyState >= 2) {
+                        const resultados  = await detector.detect(video);
+                        const visiblesAhora = new Set(resultados.map(r => r.rawValue));
+
+                        // Detectar códigos que ya no están en el frame
+                        for (const codigo of codigosProcesados) {
+                            if (!visiblesAhora.has(codigo)) {
+                                if (!codigosAusentes.has(codigo)) {
+                                    codigosAusentes.set(codigo, Date.now());
+                                } else if (Date.now() - codigosAusentes.get(codigo) >= MS_AUSENTE) {
+                                    // Estuvo ausente suficiente tiempo → permitir re-escaneo
+                                    codigosProcesados.delete(codigo);
+                                    codigosAusentes.delete(codigo);
+                                }
+                            } else {
+                                // Sigue visible → resetear timer de ausencia
+                                codigosAusentes.delete(codigo);
+                            }
+                        }
+
+                        // Procesar primer código visible no bloqueado
+                        for (const codigo of visiblesAhora) {
+                            if (codigo && !codigosProcesados.has(codigo)) {
+                                codigosProcesados.add(codigo);
+                                document.getElementById('camara-estado').innerHTML = `<i class="fas fa-check"></i> Leído: ${codigo}`;
+                                await procesarCodigo(codigo);
+                                // Cerrar cámara automáticamente tras el escaneo
+                                setTimeout(() => cerrarCamara(), 600);
+                                break;
+                            }
+                        }
+                    }
+                } catch {}
+                scanLoop = requestAnimationFrame(loop);
+            };
+            scanLoop = requestAnimationFrame(loop);
+        }
+
+        async function iniciarFallbackQrcode(deviceId) {
+            // Detener el stream manual — html5-qrcode abre el suyo propio
+            if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+            document.getElementById('visor-camara').innerHTML = '<div class="scan-line"></div>';
+
+            const formatos = [
+                Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39,
+                Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.QR_CODE,
+            ];
+            html5QrCode = new Html5Qrcode('visor-camara', { formatsToSupport: formatos, verbose: false });
+            try {
+                // html5-qrcode solo acepta exactamente 1 key en el primer parámetro
+                await html5QrCode.start(
+                    { deviceId: { exact: deviceId } },
+                    {
+                        fps: 15,
+                        qrbox: { width: 300, height: 120 },
+                        aspectRatio: 1.7,
+                        videoConstraints: {
+                            deviceId:   { exact: deviceId },
+                            facingMode: { exact: 'environment' },
+                            focusMode:  'continuous',
+                            advanced:   [{ focusMode: 'continuous' }]
+                        }
+                    },
+                    async (codigo) => {
+                        if (cooldownCamara) return;
+                        cooldownCamara = true;
+                        document.getElementById('camara-estado').innerHTML = `<i class="fas fa-check"></i> Leído: ${codigo}`;
+                        await procesarCodigo(codigo);
+                        setTimeout(() => cerrarCamara(), 600);
+                    }, () => {}
+                );
+                await aplicarAutofoco(null);
+            } catch (e) {
+                document.getElementById('camara-estado').textContent = 'Error: ' + (e.message || e);
+            }
+        }
+
+        async function aplicarAutofoco(stream) {
+            try {
+                const src = stream || (document.querySelector('#visor-camara video')?.srcObject);
+                if (!src) return;
+                const track = src.getVideoTracks?.()[0];
+                if (!track) return;
+                const caps = track.getCapabilities?.() || {};
+                if (caps.focusMode?.includes('continuous'))
+                    await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+                else if (caps.focusMode?.includes('auto'))
+                    await track.applyConstraints({ advanced: [{ focusMode: 'auto' }] });
+            } catch {}
+        }
+
+        async function detenerCamara() {
+            if (scanLoop) { cancelAnimationFrame(scanLoop); scanLoop = null; }
+            if (html5QrCode) {
+                try { if (html5QrCode.isScanning) await html5QrCode.stop(); } catch {}
+                html5QrCode = null;
+            }
+            if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+        }
+
+        async function cambiarCamara() {
+            const id = document.getElementById('select-camara').value;
+            if (!id || id === camaraActualId) return;
+            camaraActualId = id;
+            document.getElementById('camara-estado').textContent = 'Cambiando cámara...';
+            await iniciarCamara(id);
+        }
+
+        async function cerrarCamara() {
+            await detenerCamara();
+            cooldownCamara = false;
+            document.getElementById('modal-camara').classList.remove('activo');
+            enfocarScanner();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('modal-camara').classList.contains('activo')) {
+                cerrarCamara();
+            }
+        });
+
+        // ---- INIT ----
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('btn-tema').innerText = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+            cargarUsuario();
+            enfocarScanner();
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#input-manual') &&
+                    !e.target.closest('.sidebar') &&
+                    !e.target.closest('[onclick="abrirSidebar()"]')) {
+                    enfocarScanner();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

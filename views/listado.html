@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listado de Inventario - Centro de Distribución</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: {
+                            DEFAULT: '#070709',
+                            card: '#111217',
+                            border: '#1f212a',
+                            navbar: '#0d0e12',
+                            hover: '#1b1c23'
+                        }
+                    }
+                }
+            }
+        }
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body class="bg-gray-100 dark:bg-obsidian antialiased text-sm transition-colors duration-300">
+
+    <!-- POPUP STOCK CRÍTICO -->
+    <div id="contenedor-popup" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-sm">
+        <div class="bg-white dark:bg-obsidian-card w-full max-w-lg sm:max-w-2xl rounded-2xl shadow-2xl border-2 border-rose-400 dark:border-rose-600 overflow-hidden">
+
+            <!-- Header -->
+            <div class="bg-rose-600 dark:bg-rose-700 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span class="text-xl sm:text-2xl"><i class="fas fa-exclamation-triangle"></i></span>
+                    <div>
+                        <h3 class="font-bold text-white uppercase tracking-widest text-xs sm:text-sm">Aviso del Sistema</h3>
+                        <p class="text-rose-200 text-xs mt-0.5 hidden sm:block">Se detectaron artículos por debajo del stock mínimo</p>
+                    </div>
+                </div>
+                <button onclick="cerrarPopup()" class="text-rose-200 hover:text-white font-bold text-xl leading-none px-2 py-1 transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+
+            <!-- Cuerpo -->
+            <div class="p-4 sm:p-8">
+                <p class="text-gray-700 dark:text-slate-200 font-semibold mb-4 text-sm sm:text-base text-center">
+                    Los siguientes artículos están en <span class="text-rose-500 font-bold">Stock Crítico</span>:
+                </p>
+
+                <ul id="lista-productos-criticos"
+                    class="space-y-2 sm:space-y-3 mb-5 sm:mb-8 max-h-56 sm:max-h-72 overflow-y-auto bg-gray-50 dark:bg-obsidian-navbar p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-obsidian-border">
+                </ul>
+
+                <button onclick="cerrarPopup()"
+                    class="w-full py-3 bg-rose-600 hover:bg-rose-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold uppercase tracking-widest text-sm rounded-xl transition-all shadow-md active:scale-95">
+                    Aceptar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OVERLAY MOBILE -->
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="cerrarSidebar()"></div>
+
+    <!-- NAVBAR -->
+    <nav class="bg-slate-800 dark:bg-obsidian-navbar text-white border-b dark:border-obsidian-border shadow-lg fixed top-0 left-0 right-0 z-50 navbar">
+        <div class="navbar-inner h-full flex justify-between items-center px-4">
+            <div class="flex items-center gap-3">
+                <button onclick="abrirSidebar()" class="md:hidden bg-slate-700 p-2 rounded-lg text-lg"><i class="fas fa-bars"></i></button>
+                <h1 class="text-base sm:text-xl font-bold truncate"><i class="fas fa-boxes"></i> <span class="hidden sm:inline">LISTADO |</span> Inventario</h1>
+            </div>
+            <button onclick="alternarTema()" id="btn-tema" class="bg-slate-700 hover:bg-slate-600 dark:bg-obsidian-card p-2 rounded-lg transition-all active:scale-95"><i class="fas fa-moon"></i></button>
+        </div>
+    </nav>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-profile">
+            <div class="sidebar-avatar" id="sb-avatar">?</div>
+            <div class="sidebar-user-info">
+                <div class="sidebar-user-name" id="sb-nombre">Cargando...</div>
+                <div class="sidebar-user-role" id="sb-rol">—</div>
+            </div>
+        </div>
+        <div class="sidebar-divider"></div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-label">NAVEGACIÓN</div>
+            <a href="/" class="sidebar-link" data-page="/"><span class="sidebar-link-icon"><i class="fas fa-chart-bar"></i></span><span>Dashboard</span></a>
+            <a href="/listado" class="sidebar-link active" data-page="/listado"><span class="sidebar-link-icon"><i class="fas fa-clipboard-list"></i></span><span>Listado de Stock</span></a>
+            <a href="/registro" class="sidebar-link" data-page="/registro"><span class="sidebar-link-icon"><i class="fas fa-inbox"></i></span><span>Registro de Stock</span></a>
+            <a href="/egreso" class="sidebar-link" data-page="/egreso"><span class="sidebar-link-icon"><i class="fas fa-upload"></i></span><span>Egreso de Stock</span></a>
+            <a href="/movimientos" class="sidebar-link" data-page="/movimientos"><span class="sidebar-link-icon"><i class="fas fa-clipboard-list"></i></span><span>Movimientos</span></a>
+            <a href="/pedidos" class="sidebar-link" data-page="/pedidos"><span class="sidebar-link-icon"><i class="fas fa-truck"></i></span><span>Órdenes de Pedido</span></a>
+            <a href="/productos" class="sidebar-link" data-page="/productos"><span class="sidebar-link-icon"><i class="fas fa-tags"></i></span><span>Catálogo de Productos</span></a>
+        </nav>
+        <div class="flex-1"></div>
+        <div class="sidebar-footer">
+            <div class="sidebar-divider"></div>
+            <button class="sidebar-logout" onclick="cerrarSesion()">
+                <span class="sidebar-link-icon">⏻</span><span>Cerrar Sesión</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="main-content">
+        <main class="container mx-auto p-3 sm:p-4 md:p-8">
+
+            <!-- Indicadores -->
+            <div class="grid grid-cols-2 gap-3 mb-4 sm:mb-6">
+                <div class="bg-white dark:bg-obsidian-card p-3 sm:p-4 rounded-xl border dark:border-obsidian-border shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-1">
+                    <span class="text-gray-600 dark:text-slate-400 text-xs sm:text-sm">Total en stock</span>
+                    <span id="total-stock" class="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">0</span>
+                </div>
+                <div class="bg-white dark:bg-obsidian-card p-3 sm:p-4 rounded-xl border dark:border-obsidian-border shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-1 border-l-4 border-l-rose-500">
+                    <span class="text-gray-600 dark:text-slate-400 text-xs sm:text-sm">Stock crítico</span>
+                    <span id="total-criticos" class="text-2xl sm:text-3xl font-bold text-rose-600 dark:text-rose-400">0</span>
+                </div>
+            </div>
+
+            <!-- Buscador -->
+            <div class="mb-4 sm:mb-6">
+                <input type="search" id="filtro-buscar"
+                    placeholder="Buscar por SKU o nombre..."
+                    oninput="ejecutarBusqueda()"
+                    class="w-full p-3 bg-white dark:bg-obsidian-card border dark:border-obsidian-border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-slate-100">
+            </div>
+
+            <!-- Tabla / Cards -->
+            <div class="bg-white dark:bg-obsidian-card rounded-xl shadow-md border dark:border-obsidian-border overflow-hidden">
+
+                <!-- Vista tabla (sm+) -->
+                <div class="hidden sm:block overflow-x-auto">
+                    <table class="tabla-inventario w-full text-left border-collapse">
+                        <thead class="bg-gray-200 dark:bg-obsidian-navbar text-gray-700 dark:text-slate-300 uppercase text-xs">
+                            <tr>
+                                <th class="p-4">SKU</th>
+                                <th class="p-4">Producto</th>
+                                <th class="p-4">Categoría</th>
+                                <th class="p-4 text-center">Cant.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-tabla" class="divide-y divide-gray-100 dark:divide-obsidian-border text-gray-600 dark:text-slate-400">
+                            <tr><td colspan="4" class="p-8 text-center animate-pulse text-gray-400">Cargando inventario...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Vista cards (mobile) -->
+                <div class="sm:hidden" id="lista-cards">
+                    <div class="p-6 text-center animate-pulse text-gray-400">Cargando inventario...</div>
+                </div>
+            </div>
+
+            <!-- Paginación -->
+            <div class="mt-4 sm:mt-6 flex justify-center items-center gap-1.5 flex-wrap" id="paginacion"></div>
+
+        </main>
+    </div>
+
+    <script>
+        let paginaActual = 1;
+        const porPagina = 25;
+        let totalPaginas = 1;
+        let popupYaMostrado = false;
+
+        // ---- TEMA ----
+        function alternarTema() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+            document.getElementById('btn-tema').innerText = html.classList.contains('dark') ? '☀️' : '🌙';
+        }
+            function alternarTema() {
+                document.documentElement.classList.toggle('dark');
+                const isDark = document.documentElement.classList.contains('dark');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                document.getElementById('btn-tema').innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+            }
+
+        // ---- SIDEBAR MOBILE ----
+        function abrirSidebar() {
+            document.getElementById('sidebar').classList.add('open');
+            document.getElementById('sidebar-overlay').classList.add('active');
+        }
+        function cerrarSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebar-overlay').classList.remove('active');
+        }
+
+        // ---- USUARIO ----
+        function cargarUsuario() {
+            const raw = sessionStorage.getItem('usuario');
+            if (!raw) { window.location.href = '/login'; return; }
+            const u = JSON.parse(raw);
+            const iniciales = u.nombre.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+            document.getElementById('sb-avatar').textContent = iniciales;
+            document.getElementById('sb-nombre').textContent = u.nombre;
+            document.getElementById('sb-rol').textContent = u.rol || 'Operador';
+        }
+
+        function cerrarSesion() {
+            if (!confirm('¿Cerrar sesión?')) return;
+            sessionStorage.removeItem('usuario');
+            fetch('/api/auth/logout', { method: 'POST' }).finally(() => window.location.href = '/login');
+        }
+
+        // ---- POPUP ----
+        function cerrarPopup() {
+            document.body.classList.remove('overflow-hidden');
+            document.getElementById('contenedor-popup').classList.add('hidden');
+        }
+
+        function verificarStockCritico(productos) {
+            const criticos = productos.filter(p => (parseInt(p['Cant. Actual']) || 0) <= (parseInt(p.stock_minimo) || 0));
+            if (!criticos.length) return;
+
+            document.getElementById('lista-productos-criticos').innerHTML = criticos.map(p => `
+                <li class="border-b border-gray-200 dark:border-obsidian-border py-2.5 sm:py-3 flex justify-between items-center gap-3">
+                    <div class="flex flex-col min-w-0">
+                        <span class="font-bold text-gray-800 dark:text-slate-200 text-xs sm:text-sm truncate">${p.Producto}</span>
+                        <span class="text-xs text-blue-500 font-mono font-bold mt-0.5">SKU: ${p.SKU || 'N/A'}</span>
+                    </div>
+                    <span class="text-rose-600 font-bold text-xs sm:text-sm bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 px-2.5 py-1 rounded-lg whitespace-nowrap flex-shrink-0">
+                        Quedan: ${p['Cant. Actual']}
+                    </span>
+                </li>
+            `).join('');
+
+            document.body.classList.add('overflow-hidden');
+            document.getElementById('contenedor-popup').classList.remove('hidden');
+        }
+
+        // ---- RENDER TABLA (sm+) ----
+        function renderizarTabla(productos) {
+            document.getElementById('lista-tabla').innerHTML = productos.length
+                ? productos.map(p => {
+                    const critico = parseInt(p['Cant. Actual']) <= (parseInt(p.stock_minimo) || 0);
+                    return `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-obsidian-hover transition-colors ${critico ? 'bg-rose-50 dark:bg-rose-950/10' : ''}">
+                        <td class="p-4 font-mono font-bold text-blue-600 dark:text-blue-400 text-xs">${p.SKU || 'N/A'}</td>
+                        <td class="p-4 font-medium text-gray-900 dark:text-slate-200">${p.Producto || 'Sin nombre'}</td>
+                        <td class="p-4 text-gray-500 dark:text-slate-400">${p.Categoria || '—'}</td>
+                        <td class="p-4 text-center font-bold ${critico ? 'text-rose-600 dark:text-rose-400' : 'text-gray-800 dark:text-slate-200'}">${p['Cant. Actual'] || 0}</td>
+                    </tr>`;
+                }).join('')
+                : `<tr><td colspan="4" class="p-8 text-center text-gray-400">No hay productos que coincidan.</td></tr>`;
+        }
+
+        // ---- RENDER CARDS (mobile) ----
+        function renderizarCards(productos) {
+            const contenedor = document.getElementById('lista-cards');
+            if (!productos.length) {
+                contenedor.innerHTML = `<div class="p-6 text-center text-gray-400">No hay productos que coincidan.</div>`;
+                return;
+            }
+            contenedor.innerHTML = productos.map(p => {
+                const critico = parseInt(p['Cant. Actual']) <= (parseInt(p.stock_minimo) || 0);
+                return `
+                <div class="flex items-center justify-between px-4 py-3 border-b dark:border-obsidian-border last:border-0 ${critico ? 'border-l-4 border-l-rose-500 pl-3' : ''}">
+                    <div class="min-w-0 flex-1 mr-3">
+                        <div class="font-semibold text-gray-900 dark:text-slate-100 text-sm truncate">${p.Producto || 'Sin nombre'}</div>
+                        <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <span class="font-mono text-xs font-bold text-blue-500">${p.SKU || 'N/A'}</span>
+                            ${p.Categoria ? `<span class="text-xs text-gray-400 dark:text-slate-500">${p.Categoria}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 text-right">
+                        <div class="text-xl font-bold ${critico ? 'text-rose-500' : 'text-gray-800 dark:text-slate-200'}">${p['Cant. Actual'] || 0}</div>
+                        <div class="text-xs ${critico ? 'text-rose-400 font-semibold' : 'text-gray-400'}">
+                            ${critico ? '⚠ crítico' : 'unidades'}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // ---- PAGINACIÓN con truncado ----
+        function renderizarPaginacion() {
+            const div = document.getElementById('paginacion');
+            div.innerHTML = '';
+            if (totalPaginas <= 1) return;
+
+            const btnClass = (activo, disabled) =>
+                `min-w-[36px] px-3 py-2 rounded-lg border text-sm font-medium transition-colors
+                ${activo    ? 'bg-blue-600 text-white border-blue-600 font-bold' :
+                  disabled  ? 'opacity-40 cursor-not-allowed bg-gray-200 dark:bg-obsidian-card dark:border-obsidian-border text-gray-500' :
+                              'bg-white dark:bg-obsidian-card dark:border-obsidian-border hover:bg-gray-100 dark:hover:bg-obsidian-hover text-gray-700 dark:text-slate-200'}`;
+
+            const crearBtn = (texto, pagina, disabled = false, activo = false) => {
+                const b = document.createElement('button');
+                b.innerHTML = texto;
+                b.className = btnClass(activo, disabled);
+                b.disabled = disabled;
+                if (!disabled && !activo) b.onclick = () => { paginaActual = pagina; cargarListado(); };
+                return b;
+            };
+
+            // ◀ Anterior
+            div.appendChild(crearBtn('◀', paginaActual - 1, paginaActual === 1));
+
+            // Páginas con "..." para muchas páginas
+            const rango = (desde, hasta) => {
+                for (let i = desde; i <= hasta; i++) {
+                    div.appendChild(crearBtn(i, i, false, i === paginaActual));
+                }
+            };
+            const puntos = () => {
+                const s = document.createElement('span');
+                s.textContent = '…';
+                s.className = 'px-1 text-gray-400 self-center';
+                div.appendChild(s);
+            };
+
+            if (totalPaginas <= 7) {
+                rango(1, totalPaginas);
+            } else if (paginaActual <= 4) {
+                rango(1, 5); puntos(); rango(totalPaginas, totalPaginas);
+            } else if (paginaActual >= totalPaginas - 3) {
+                rango(1, 1); puntos(); rango(totalPaginas - 4, totalPaginas);
+            } else {
+                rango(1, 1); puntos(); rango(paginaActual - 1, paginaActual + 1); puntos(); rango(totalPaginas, totalPaginas);
+            }
+
+            // ▶ Siguiente
+            div.appendChild(crearBtn('▶', paginaActual + 1, paginaActual === totalPaginas));
+        }
+
+        // ---- CARGA ----
+        function ejecutarBusqueda() { paginaActual = 1; cargarListado(); }
+
+        async function cargarListado() {
+            try {
+                const busqueda = document.getElementById('filtro-buscar').value;
+                const response = await fetch(`/api/dashboard?page=${paginaActual}&limit=${porPagina}&search=${encodeURIComponent(busqueda)}`);
+                const resultado = await response.json();
+
+                if (resultado.success) {
+                    totalPaginas = resultado.totalPages;
+                    document.getElementById('total-stock').innerText = resultado.totalItems;
+                    document.getElementById('total-criticos').innerText = resultado.totalAlertas;
+                    renderizarTabla(resultado.data);
+                    renderizarCards(resultado.data);
+                    renderizarPaginacion();
+                    if (!popupYaMostrado) {
+                        verificarStockCritico(resultado.data);
+                        popupYaMostrado = true;
+                    }
+                }
+            } catch (e) {
+                console.error("Error al cargar el listado:", e);
+            }
+        }
+
+        // ---- INIT ----
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('btn-tema').innerText = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+            cargarUsuario();
+            cargarListado();
+        });
+    </script>
+</body>
+</html>

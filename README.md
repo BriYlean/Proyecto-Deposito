@@ -36,7 +36,7 @@
    - Crea la base de datos `control_stock` e importa el archivo `.sql` incluido en este repositorio para generar la estructura inicial.
    
 2. **Dependencias:** 
-   - Asegúrate de tener instalado **Node.js**.
+   - Asegúrate de tener instalado [**Node.js**](https://nodejs.org/es).
    - Abre una terminal en la carpeta raíz del proyecto y ejecuta:
 ```npm install```
 

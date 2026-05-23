@@ -32,7 +32,7 @@
 <div style="background-color: #303030; padding: 15px; border-radius: 8px; color: white;">
 
 1. **Base de Datos:** 
-   - Abre **XAMPP** e inicia el servicio de **MySQL**.
+   - Abre [XAMPP](https://www.apachefriends.org/es/index.html) e inicia el servicio de **MySQL**.
    - Crea la base de datos `control_stock` e importa el archivo `.sql` incluido en este repositorio para generar la estructura inicial.
    
 2. **Dependencias:** 

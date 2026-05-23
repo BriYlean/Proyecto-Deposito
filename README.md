@@ -38,15 +38,11 @@
 2. **Dependencias:** 
    - Asegúrate de tener instalado **Node.js**.
    - Abre una terminal en la carpeta raíz del proyecto y ejecuta:
-```bash
-     npm install
-     ```
+```npm install```
 
 3. **Ejecución:** 
    - Una vez instaladas las dependencias, inicia la aplicación mediante:
-```bash
-     npm start
-     ```
+```npm start```
 </div>
 
 ---

@@ -27,6 +27,30 @@
 
 ---
 
+## 🚀 Guía de Instalación y Configuración
+
+<div style="background-color: #303030; padding: 15px; border-radius: 8px; color: white;">
+
+1. **Base de Datos:** 
+   - Abre **XAMPP** e inicia el servicio de **MySQL**.
+   - Crea la base de datos `control_stock` e importa el archivo `.sql` incluido en este repositorio para generar la estructura inicial.
+   
+2. **Dependencias:** 
+   - Asegúrate de tener instalado **Node.js**.
+   - Abre una terminal en la carpeta raíz del proyecto y ejecuta:
+```bash
+     npm install
+     ```
+
+3. **Ejecución:** 
+   - Una vez instaladas las dependencias, inicia la aplicación mediante:
+```bash
+     npm start
+     ```
+</div>
+
+---
+
 ## 💻 Proyectos Destacados
 
 ### Sistema de Gestión Logística

@@ -7,12 +7,18 @@
   🚀 Especializado en automatización, desarrollo web y sistemas de gestión logística.
 </div>
 
+<br>
+
+<div style="background-color: #a83232; padding: 15px; border-radius: 8px; color: white; font-weight: bold; border: 1px solid #7d2626;">
+  ⚠️ AVISO: Este proyecto se encuentra actualmente en fase de desarrollo y puede experimentar fallas o inestabilidad.
+</div>
+
 </div>
 
 ---
 
 ## 🛠 Tech Stack
-<div style="display: flex; gap: 10px;">
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
   <span style="background-color: #303030; color: #fff; padding: 5px 10px; border-radius: 4px;">Node.js</span>
   <span style="background-color: #303030; color: #fff; padding: 5px 10px; border-radius: 4px;">MySQL/MariaDB</span>
   <span style="background-color: #303030; color: #fff; padding: 5px 10px; border-radius: 4px;">Web Development</span>
